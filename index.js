@@ -14,19 +14,19 @@ app.set("view engine", "ejs");
 app.engine("ejs", ejs_mate);
 
 app.set("views", path.join(__dirname, "views"));
-
 app.use(express.static("public"));
+// app.use(express.static("express.static("./path-to-views/public")));
 app.use(methodOverride("_method"));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser(process.env.COOKIE_PARSER_SEC));
 
 // Model requires
-const User = require("./models/userModel/user");
-const Electricity = require("./models/electricityModel/electricity");
-const Travel = require("./models/travelModel/travel");
-const Waste = require("./models/wasteModel/waste");
-const Fuel = require("./models/fuelModel/fuel");
+// const User = require("./models/userModel/user");
+// const Electricity = require("./models/electricityModel/electricity");
+// const Travel = require("./models/travelModel/travel");
+// const Waste = require("./models/wasteModel/waste");
+// const Fuel = require("./models/fuelModel/fuel");
 
 // Session requires
 const session = require("express-session");
@@ -45,6 +45,7 @@ mongoose
   .catch(() => {
     console.log("error!!");
   });
+//im khatron ke khilaadi to edit this file in vim using hyper terminal
 
 // * CONFIGURING THE SESSION STORE AND SESSION.
 // creating a collection for sessions with help of mongoSessionStore
@@ -54,6 +55,7 @@ const sessionStore = mongoSessionStore.create({
 });
 
 // creating session configration object
+//It creates a browser cookie for each session
 // ! give expiry for session cookie
 const sessionConfig = {
   secret: process.env.SESSION_SECRET,
@@ -159,32 +161,31 @@ app.get(
 app.get(
   "/auth/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "/auth/google",
+    failureRedirect: "/",
     successRedirect: "/",
   })
 );
 
 // ! just for dummy use, will be removed
-// app.get("/done", (req, res) => {
-//   res.send("LOGIN IS successful" + `${req.session}`);
-// });
+app.get("/done", (req, res) => {
+  res.send("LOGIN IS successful" + `${req.session}`);
+});
 
-// app.get("/isloged", (req, res) => {
-//   if (req.user) {
-//     return res.send("yessss");
-//   }
-//   res.send("NOOOOOOOOOOOOOOOO");
-// });
+app.get("/isloged", (req, res) => {
+  if (req.user) {
+    return res.send("yessss");
+  }
+  res.send("NOOOOOOOOOOOOOOOO");
+});
 
 // ? For displaying the home page
 app.get("/", async (req, res, next) => {
   // const resData = await request();
 
   if (!req.user) {
-//     return res.send("login IN First");
-     return res.redirect("/auth/google");
+    return res.redirect("/auth/google");
   }
-  // console.log(req.user);
+  console.log(req.user);
   const currUser = await User.findById(req.user._id)
     .populate("elec_activities")
     .populate("waste_activities")
@@ -384,30 +385,40 @@ app.post("/activity/fuel/new", async (req, res, next) => {
   res.redirect("/");
 });
 
-app.get("/aqi", async (req, res, next) => {
-  const { cityName } = req.query;
-  const url = `https://api.waqi.info/feed/${cityName}/?token=${e475c164b3fcf8a8b99113458426ec0eec0d73e7}`;
+// app.get("/aqi", async (req, res, next) => {
+//   const { cityName } = req.query;
+//   const url = 'https://api.waqi.info/feed/${cityName}e475c164b3fcf8a8b99113458426ec0eec0d73e7';
+//    axios.get(url) 
+//     .then((response) => {
+//       const aqiData = response.data.data.aqi;
+//       console.log(aqiData);
+//       res.send(`The current AQI for ${cityName} is ${aqiData}`);
+//     })
+//     .catch((error) => {
+//       console.error(error);
+//       res.status(500).send("Error retrieving AQI data");
+//     });
 
-  // const resData = await axios({
-  //   baseURL:"https://api.waqi.info/feed",
-  //   url,
-  //   method: "get",
-  // });
+//   res.render("/");
 
-  axios
-    .get(url)
-    .then((response) => {
-      const aqiData = response.data.data.aqi;
-      console.log(aqiData);
-      res.send(`The current AQI for ${cityName} is ${aqiData}`);
+// });
+const API_KEY = 'd99bd51d4ff6ce26e2b36d82fbf6b9287235ee00'; // Replace with your actual API key from aqicn.org.
+
+app.get('/aqi', (req, res) => {
+  const { cityName} =  req.query;
+  const apiUrl = `https://api.waqi.info/feed/${cityName}/?token=${API_KEY}`;
+  console.log(cityName);
+  axios.get(apiUrl)
+    .then(response => {
+      const { data } = response;
+      const cityAqi = data.data.aqi;
+      res.json({ city: cityName, aqi: cityAqi });
     })
-    .catch((error) => {
-      console.error(error);
-      res.status(500).send("Error retrieving AQI data");
+    .catch(error => {
+      res.status(500).json({ error: 'Error fetching AQI data.' });
     });
-
-  res.render("/");
 });
+
 
 app.get("/auth/logout", (req, res) => {
   req.session.destroy(function () {
